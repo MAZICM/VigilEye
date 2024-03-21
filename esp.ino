@@ -89,6 +89,8 @@ void sendCardID(byte *buffer, byte bufferSize) {
   }
 }
 
+
+
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived [");
   Serial.print(topic);

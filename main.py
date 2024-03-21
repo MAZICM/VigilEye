@@ -55,7 +55,7 @@ print("Scan Card Please : ")
 client.on_message = on_message
 
 # Connect to MQTT broker
-client.connect("192.168.11.101", 1883)
+client.connect("192.168.0.102", 1883)
 
 # Subscribe to topics
 client.subscribe("rfid/cards")
