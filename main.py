@@ -14,24 +14,22 @@ def f_rec(face_recognition):
         return detected_face
     else:
         print("No face detected .")
-# Callback function to handle messages received from MQTT broker
+
+
 
 
 
 def delayed_publish(client, message, delay):
     time.sleep(delay)
     print("5 secs Done .... Door Closed")
-    
     client.publish("2FA/results", message)
     print("\n\nScan Card Please : ")
-
 
 def on_message(client, userdata, message) :
     print("\n\n")
     if message.topic == "rfid/cards":
         CardID = message.payload.decode('utf-8')
         print("detected CardID: "+CardID)
-
         # Call facial recognition function from f_recognition.py
         print("Face Detection Process .... ")
         result = faceID = f_rec(face_recognition)
@@ -45,9 +43,6 @@ def on_message(client, userdata, message) :
             client.publish("2FA/results", "Access refused")
             print("\n\nScan Card Please : ")
             
-    
-    
-
 
 # Initialize MQTT client
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
@@ -55,7 +50,7 @@ print("Scan Card Please : ")
 client.on_message = on_message
 
 # Connect to MQTT broker
-client.connect("192.168.0.102", 1883)
+client.connect("192.168.0.101", 1883)
 
 # Subscribe to topics
 client.subscribe("rfid/cards")

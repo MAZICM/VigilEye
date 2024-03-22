@@ -36,7 +36,7 @@ class FaceRecognition:
 
     def run_recognition(self):
         video_capture = cv2.VideoCapture(0)
-        #video_capture = cv2.VideoCapture("http://192.168.0.101:4747/video")
+        #video_capture = cv2.VideoCapture("http://192.168.0.102:4747/video")
 
         if not video_capture.isOpened():
             print("Video source not found ....")
