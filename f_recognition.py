@@ -36,7 +36,7 @@ class FaceRecognition:
 
                 face_locations = face_recognition.face_locations(image)
                 if len(face_locations) > 0:
-                    print(f"Face found in {filename}")dd
+                    print(f"Face found in {filename}")
                     encoding = face_recognition.face_encodings(image)[0]
                     self.known_face_encodings.append(encoding)
                     self.known_face_names.append(name)
