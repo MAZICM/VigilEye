@@ -9,7 +9,7 @@ print( type(face_recognition))
 def f_rec(face_recognition):
     detected_face = face_recognition.run_recognition()
     if detected_face:
-        print(f"Detected Face: {detected_face}")
+        #print(f"Detected Face: {detected_face}")
         return detected_face
     else:
         print("No face detected .")
