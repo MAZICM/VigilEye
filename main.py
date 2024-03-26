@@ -4,8 +4,7 @@ import time
 import threading
 face_recognition = FaceRecognition()
 
-
-
+print( type(face_recognition))
 
 def f_rec(face_recognition):
     detected_face = face_recognition.run_recognition()
@@ -14,8 +13,6 @@ def f_rec(face_recognition):
         return detected_face
     else:
         print("No face detected .")
-
-
 
 
 

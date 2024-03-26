@@ -1,106 +1,103 @@
-# f_recognition.py
 import face_recognition
-import os
 import cv2
 import numpy as np
-def f_rec(face_recognition):
-        detected_face = face_recognition.run_recognition()
-        if detected_face:
-            print(f"Detected Face: {detected_face}")
-            return detected_face
-        else:
-            print("No face detected.")
+import os
+import pickle
 
 class FaceRecognition:
-    def __init__(self):
+    known_faces_dir = 'known_faces'
+    tolerance = 0.6
+    frame_thickness = 3
+    font_thickness = 2
+    model = 'cnn'
+    model_pkl_file = "face_recognition_model.pkl"  # Path to save the trained model
+
+    def __init__(self, known_faces_dir='known_faces', tolerance=0.6, frame_thickness=3, font_thickness=2, model='cnn'):
+        self.known_faces_dir = known_faces_dir
+        self.tolerance = tolerance
+        self.frame_thickness = frame_thickness
+        self.font_thickness = font_thickness
+        self.model = model
+
         self.known_face_encodings = []
         self.known_face_names = []
-
         self.encode_faces()
 
+        self.video_capture = cv2.VideoCapture(0)
+        self.frame_count = 0
+
     def encode_faces(self):
-        for image in os.listdir('faces'):
-            face_image = face_recognition.load_image_file(os.path.join('faces', image))
+        for name in os.listdir(self.known_faces_dir):
+            for filename in os.listdir(os.path.join(self.known_faces_dir, name)):
+                image = face_recognition.load_image_file(os.path.join(self.known_faces_dir, name, filename))
+                encoding = face_recognition.face_encodings(image)[0]
+                self.known_face_encodings.append(encoding)
+                self.known_face_names.append(name)
 
-            face_locations = face_recognition.face_locations(face_image)
-            if len(face_locations) > 0:
-                print(f"Face found in {image}")
-                face_encoding = face_recognition.face_encodings(face_image)[0]
+        # Save the trained model
+        self.save_model()
 
-                self.known_face_encodings.append(face_encoding)
-                self.known_face_names.append(image)
-            else:
-                print(f"No face found in {image}")
+    def save_model(self):
+        model_data = {
+            'known_face_encodings': self.known_face_encodings,
+            'known_face_names': self.known_face_names,
+            'tolerance': self.tolerance,
+            'frame_thickness': self.frame_thickness,
+            'font_thickness': self.font_thickness,
+            'model': self.model
+        }
 
-        print(self.known_face_names)
+        with open(self.model_pkl_file, 'wb') as f:
+            pickle.dump(model_data, f)
 
     def run_recognition(self):
-        video_capture = cv2.VideoCapture(0)
-        #video_capture = cv2.VideoCapture("http://192.168.0.102:4747/video")
+        while True:
+            ret, frame = self.video_capture.read()
+            if not ret:
+                print("Error reading frame.")
+                break
 
-        if not video_capture.isOpened():
-            print("Video source not found ....")
-            return None
+            small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+            rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
 
-        try:
-            while True:
-                ret, frame = video_capture.read()
-                if not ret:
-                    print("Error reading frame.")
-                    break
+            face_locations = face_recognition.face_locations(rgb_small_frame, model=self.model)
+            face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
 
-                small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
-                rgb_small_frame = np.ascontiguousarray(small_frame[:, :, ::-1])
+            for face_encoding, face_location in zip(face_encodings, face_locations):
+                top, right, bottom, left = [i * 4 for i in face_location]  # Scale back up face locations
+                name = 'Unknown'
+                accuracy = None
 
-                face_locations = face_recognition.face_locations(rgb_small_frame)
-                face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
+                # Perform face matching
+                matches = face_recognition.compare_faces(self.known_face_encodings, face_encoding, tolerance=self.tolerance)
+                if True in matches:
+                    first_match_index = matches.index(True)
+                    name = self.known_face_names[first_match_index]
 
-                detected_face = None
-
-                for face_encoding in face_encodings:
-                    matches = face_recognition.compare_faces(self.known_face_encodings, face_encoding)
-                    name = 'Unknown'
-                    confidence = 'Unknown'
-
+                    # Calculate accuracy
                     face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
-                    best_match_index = np.argmin(face_distances)
+                    accuracy = 100 - (face_distances[first_match_index] * 100)
 
-                    if matches[best_match_index]:
-                        name = self.known_face_names[best_match_index]
-                        name = name.split(".")[0]
-                        confidence = self.face_confidence(face_distances[best_match_index])
+                color = (0, 255, 0) if name != 'Unknown' else (0, 0, 255)
+                cv2.rectangle(frame, (left, top), (right, bottom), color, self.frame_thickness)
+                cv2.putText(frame, f"{name} ({accuracy:.2f}%)" if accuracy is not None else name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, self.font_thickness)
 
-                        detected_face = f'{name}'
-                        break
+            cv2.imshow('Face Recognition', frame)
 
-                if detected_face:
-                    break
+            # Exit loop if 'q' is pressed
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
-                cv2.imshow('Face Reco', frame)
-                if cv2.waitKey(1) == ord('q'):
-                    break
+            self.frame_count += 1
 
-        except Exception as e:
-            print(f"An error occurred: {e}")
-        finally:
-            video_capture.release()
-            cv2.destroyAllWindows()
+        # Release video capture and close OpenCV windows
+        self.video_capture.release()
+        cv2.destroyAllWindows()
 
-        return detected_face
+# Main function to run face recognition
+def main():
+    face_recognition = FaceRecognition()
+    face_recognition.run_recognition()
 
-    def face_confidence(self, face_distance):
-        if np.max(face_distance) == np.min(face_distance):
-            return "Unknown"
-    
-        normalized_distance = (face_distance - np.min(face_distance)) / (np.max(face_distance) - np.min(face_distance))
-        threshold_multiplier = 1.5
-    
-        dynamic_threshold = np.percentile(normalized_distance, 50) * threshold_multiplier
-    
-        if normalized_distance > dynamic_threshold:
-            linear_val = (1.0 - normalized_distance) / (dynamic_threshold * 2.0)
-            return f"{round(linear_val * 100, 2)}%"
-        else:
-            power_arg = max((normalized_distance / dynamic_threshold - 0.5) * 2, 0)
-            value = (1.0 - np.power(power_arg, 0.2)) * 100
-            return f"{round(value, 2)}%"
+if __name__ == "__main__":
+    main()
