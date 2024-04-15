@@ -1,7 +1,10 @@
+
+
 import paho.mqtt.client as mqtt
-from f_recognition2 import FaceRecognition
 import time
 import threading
+from model_trainer import ModelTrainer
+from f3 import FaceRecognition
 face_recognition = FaceRecognition()
 
 print( type(face_recognition))
@@ -47,12 +50,13 @@ print("Scan Card Please : ")
 client.on_message = on_message
 
 # Connect to MQTT broker
-client.connect("192.168.0.101", 1883)
+client.connect("192.168.11.100", 1883)
 
 # Subscribe to topics
 client.subscribe("rfid/cards")
 
 # Start the MQTT client loop
 client.loop_forever()
+
 
 
