@@ -1,11 +1,11 @@
 import face_recognition
 import os
 import pickle
+from datetime import datetime
 
 class ModelTrainer:
-    def __init__(self, known_faces_dir='known_faces', model_pkl_file="face_recognition_model3.pkl"):
+    def __init__(self, known_faces_dir='known_faces'):
         self.known_faces_dir = known_faces_dir
-        self.model_pkl_file = model_pkl_file
 
     def train_and_save_model(self):
         known_face_encodings = []
@@ -28,15 +28,18 @@ class ModelTrainer:
             'known_face_names': known_face_names
         }
 
-        with open(self.model_pkl_file, 'wb') as f:
+        # Generate filename with current date and time
+        now = datetime.now()
+        date_time = now.strftime("%Y-%m-%d_%H-%M-%S")
+        model_pkl_file = f"model_{date_time}.pkl"
+
+        with open(model_pkl_file, 'wb') as f:
             pickle.dump(model_data, f)
 
 def main():
     # Train the model
     trainer = ModelTrainer()
     trainer.train_and_save_model()
-
-
 
 if __name__ == "__main__":
     main()
