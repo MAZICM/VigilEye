@@ -2,6 +2,7 @@ import face_recognition
 import os
 import pickle
 from datetime import datetime
+from pymongo import MongoClient
 
 class ModelTrainer:
     def __init__(self, known_faces_dir='known_faces'):
@@ -33,8 +34,21 @@ class ModelTrainer:
         date_time = now.strftime("%Y-%m-%d_%H-%M-%S")
         model_pkl_file = f"model_{date_time}.pkl"
 
+        # Save model to pickle file
         with open(model_pkl_file, 'wb') as f:
             pickle.dump(model_data, f)
+
+        # Connect to MongoDB and insert the model data
+        client = MongoClient('mongodb://localhost:27017/')  # Connect to MongoDB server
+        db = client['2FA']  # Access 2FA database
+        collection = db['AI-Models']  # Access AI-Models collection
+        with open(model_pkl_file, 'rb') as f:
+            model_bytes = f.read()
+        model_doc = {
+            'datetime': date_time,
+            'model_bytes': model_bytes
+        }
+        collection.insert_one(model_doc)
 
 def main():
     # Train the model
