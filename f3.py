@@ -24,7 +24,7 @@ class FaceRecognition:
         else:
             self.load_model_from_mongodb()
 
-        self.video_capture = cv2.VideoCapture(0)
+        
         #self.video_capture = cv2.VideoCapture("http://192.168.0.102:4747/video")
 
         self.frame_count = 0
@@ -51,7 +51,9 @@ class FaceRecognition:
             self.model = model_data.get('model', 'cnn')
 
     def run_recognition(self):
-        start_time = time.time()  # Record the start time
+        start_time = time.time() 
+         # Record the start time
+        self.video_capture = cv2.VideoCapture(0)
         while True:
             ret, frame = self.video_capture.read()
             if not ret:
@@ -89,7 +91,8 @@ class FaceRecognition:
                     cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), self.frame_thickness)
                     cv2.putText(frame, f"{name} ({accuracy:.2f}%)" if accuracy is not None else name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), self.font_thickness)
                     cv2.imwrite("detected_face.jpg", frame)
-                    
+                    self.video_capture.release()
+                    cv2.destroyAllWindows()
                     return name
                 color = (0, 255, 0) if name != 'Unknown' else (0, 0, 255)
                 cv2.rectangle(frame, (left, top), (right, bottom), color, self.frame_thickness)

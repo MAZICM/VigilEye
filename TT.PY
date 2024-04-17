@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_socketio import SocketIO
 import paho.mqtt.client as mqtt
@@ -9,13 +9,14 @@ import threading
 import time
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 socketio = SocketIO(app, cors_allowed_origins="*")  # Initialize SocketIO with CORS enabled
 
 face_recognition = FaceRecognition()
 model_trainer = ModelTrainer()
 
 # MQTT settings
-mqtt_broker_address = "192.168.11.100"  # Update with your MQTT broker address
+mqtt_broker_address = "10.200.2.77"  # Update with your MQTT broker address
 mqtt_topic = "rfid/cards"  # Update with your MQTT topic
 
 latest_cardID = "0000"  # Initialize latest_cardID variable
@@ -86,8 +87,25 @@ def get_latest_cardID():
         return jsonify({'latest_cardID': latest_cardID})
     else:
         return jsonify({'error': 'No card ID received'}), 404
+    
+@app.route('/api/getOwnerName', methods=['GET'])
+def get_owner_name():
+    card_id = request.args.get('cardID')
+    client = MongoClient('mongodb://localhost:27017/')
+    db = client['2FA']
+    collection = db['users']
 
-# Remaining endpoints...
+    if card_id:
+        user = collection.find_one({'cardID': card_id})
+        if user:
+            print("NOM : ")
+            print(user['name'])
+            return jsonify({'ownerName': user['name']})
+        else:
+            return jsonify({'error': 'User not found'}), 404
+    else:
+        return jsonify({'error': 'Missing cardID parameter'}), 400
+
 
 if __name__ == '__main__':
     socketio.run(app, host="127.0.0.1", port=5000)
