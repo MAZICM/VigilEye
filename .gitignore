@@ -5,7 +5,9 @@ __pycache__/
 .vscode/
 # C extensions
 *.so
-
+model_*
+detected_face*
+temp_model.pkl
 # Distribution / packaging
 .Python
 build/
