@@ -54,6 +54,7 @@ class FaceRecognition:
         start_time = time.time() 
          # Record the start time
         self.video_capture = cv2.VideoCapture(0)
+        #self.video_capture = cv2.VideoCapture("http://192.168.11.157:4747/video")
         while True:
             ret, frame = self.video_capture.read()
             if not ret:
