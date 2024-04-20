@@ -18,7 +18,10 @@ face_recognition = FaceRecognition()
 # MQTT settings
 mqtt_broker_address = "192.168.11.154"  # Update with your MQTT broker address
 mqtt_topic = "rfid/cards"  # Update with your MQTT topic
-
+# Set up MongoDB connection
+client = MongoClient('mongodb://localhost:27017/')
+db = client['2FA']
+collection = db['users']
 # Initialize Flask app and SocketIO
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -53,19 +56,21 @@ def get_expected_cardID(detected_face):
         return None
 
 def on_message(client, userdata, message):
-    global latest_cardID  # Use the global variable to store the latest card ID
+    global latest_cardID
     logging.info("Received MQTT message: %s", str(message.payload.decode("utf-8")))
-    logging.info("\n\n")
 
-        
     if message.topic == "rfid/cards":
         cardID = message.payload.decode('utf-8')
         logging.info("Detected CardID: %s", cardID)
         latest_cardID = cardID
-        socketio.emit("latest_cardID", {"cardID": cardID})
-        # Update latest_cardID
-        latest_cardID = cardID
-        socketio.emit("latest_cardID", {"cardID": cardID})
+        
+        # Get the owner's name based on card ID from MongoDB
+        user = collection.find_one({'cardID': cardID})
+        owner_name = user['name'] if user else 'Unknown'
+
+        # Emit both cardID and owner's name
+        socketio.emit("latest_cardID", {"cardID": cardID, "ownerName": owner_name})
+
         detected_face = f_rec(face_recognition)
         if detected_face:
             expected_cardID = get_expected_cardID(detected_face)
@@ -97,10 +102,7 @@ def get_latest_cardID():
 @app.route('/api/getOwnerName', methods=['GET'])
 def get_owner_name():
     card_id = request.args.get('cardID')
-    client = MongoClient('mongodb://localhost:27017/')
-    db = client['2FA']
-    collection = db['users']
-
+    
     if card_id:
         user = collection.find_one({'cardID': card_id})
         if user:
@@ -110,6 +112,7 @@ def get_owner_name():
             return jsonify({'error': 'User not found'}), 404
     else:
         return jsonify({'error': 'Missing cardID parameter'}), 400
+
 
 from flask import send_file
 
