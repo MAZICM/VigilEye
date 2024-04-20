@@ -56,10 +56,13 @@ def on_message(client, userdata, message):
     global latest_cardID  # Use the global variable to store the latest card ID
     logging.info("Received MQTT message: %s", str(message.payload.decode("utf-8")))
     logging.info("\n\n")
+
+        
     if message.topic == "rfid/cards":
         cardID = message.payload.decode('utf-8')
         logging.info("Detected CardID: %s", cardID)
-        
+        latest_cardID = cardID
+        socketio.emit("latest_cardID", {"cardID": cardID})
         # Update latest_cardID
         latest_cardID = cardID
         socketio.emit("latest_cardID", {"cardID": cardID})
