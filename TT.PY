@@ -13,10 +13,10 @@ from io import BytesIO
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
-face_recognition = FaceRecognition()
+
 
 # MQTT settings
-mqtt_broker_address = "192.168.11.154"  # Update with your MQTT broker address
+mqtt_broker_address = "192.168.0.103"  # Update with your MQTT broker address
 mqtt_topic = "rfid/cards"  # Update with your MQTT topic
 # Set up MongoDB connection
 client = MongoClient('mongodb://localhost:27017/')
@@ -26,15 +26,20 @@ collection = db['users']
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 CORS(app)
+face_recognition = FaceRecognition(socketio=socketio)
 
 latest_cardID = "0000"  # Initialize latest_cardID variable
+
+
 
 def f_rec(face_recognition):
     detected_face = face_recognition.run_recognition()
     if detected_face:
+        
         return detected_face
     else:
-        logging.warning("No face detected.")
+        socketio.emit("ai_frame", {"frame": ""})
+        logging.warning("No face detected 1.")
 
 def delayed_publish(client, message, delay):
     time.sleep(delay)
@@ -55,6 +60,7 @@ def get_expected_cardID(detected_face):
         logging.warning(f"No user found with the name: {detected_face}")
         return None
 
+
 def on_message(client, userdata, message):
     global latest_cardID
     logging.info("Received MQTT message: %s", str(message.payload.decode("utf-8")))
@@ -67,21 +73,49 @@ def on_message(client, userdata, message):
         # Get the owner's name based on card ID from MongoDB
         user = collection.find_one({'cardID': cardID})
         owner_name = user['name'] if user else 'Unknown'
+        logging.info("Owner name: %s", owner_name)
 
         # Emit both cardID and owner's name
         socketio.emit("latest_cardID", {"cardID": cardID, "ownerName": owner_name})
 
+        # Ensure synchronous operation with f_rec
         detected_face = f_rec(face_recognition)
-        if detected_face:
-            expected_cardID = get_expected_cardID(detected_face)
-            logging.info("Expected CardID: %s", expected_cardID)
-            if expected_cardID == cardID:
-                logging.info("ACCESS Granted for 5 secs")
-                # Emit event to the client
-                threading.Thread(target=delayed_publish, args=(client, "Access refused", 5)).start()
-            else:
-                logging.info("ACCESS Refused")
-                logging.info("\n\nScan Card Please : ")
+        
+        if detected_face is None:
+            logging.warning("No face detected 2")
+            socketio.emit("face_detection_error", {"error": "No face detected. Please try again."})
+            return  # Early exit if no face is detected
+
+        logging.info("Detected face: %s", detected_face)
+
+        expected_cardID = get_expected_cardID(detected_face)
+        if expected_cardID is None:
+            logging.warning("No user found with the detected face: %s", detected_face)
+            socketio.emit("access_refused", {"status": "refused", "message": "Access denied. No matching user found."})
+            return  # Early exit if no expected cardID is found
+
+        logging.info("Expected CardID: %s", expected_cardID)
+
+        # Check if the expected card ID matches the detected card ID
+        if expected_cardID == cardID:
+            logging.info("ACCESS Granted for 5 secs")
+            client.publish("2FA/results", "Access authorised")
+            
+            # Emit success event
+            socketio.emit("access_granted", {"status": "granted"})
+            
+            # Start a thread to handle delayed actions without blocking
+            threading.Thread(
+                target=delayed_publish,
+                args=(client, "Access refused", 5)  # Message is "Access refused" after 5 seconds
+            ).start()
+
+        else:
+            logging.info("ACCESS Refused")
+            socketio.emit("access_refused", {"status": "refused","reason": "Card ID does not match.",})
+
+        # Final message for the console log
+        logging.info("End of on_message processing")
 
 # Set up MQTT client
 mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
@@ -143,4 +177,4 @@ def get_owner_image():
         return jsonify({'error': 'Missing cardID parameter'}), 400
 
 if __name__ == '__main__':
-    socketio.run(app, host="192.168.11.154", port=5000)
+    socketio.run(app, host="192.168.0.103", port=5000)

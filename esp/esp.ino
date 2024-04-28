@@ -6,10 +6,10 @@
 #define SS_PIN    21
 #define RST_PIN   22
 
-#define WIFI_SSID     "TP-Link_12D4"
-#define WIFI_PASSWORD "90623585"
+#define WIFI_SSID     "Tenda_2AAA80"
+#define WIFI_PASSWORD "12345678"
 
-#define MQTT_BROKER "192.168.11.101"
+#define MQTT_BROKER "192.168.0.103"
 #define MQTT_PORT   1883
 #define MQTT_TOPIC  "rfid/cards"
 #define MQTT_RESULT_TOPIC "2FA/results"
@@ -105,9 +105,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   if (payloadString == "Access authorised") {
     digitalWrite(5, LOW);
+    Serial.print("open");
   }
   if (payloadString == "Access refused") {
     digitalWrite(5, HIGH);
+    Serial.print("close");
   }
 
   // Reset variables

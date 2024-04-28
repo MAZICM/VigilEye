@@ -7,7 +7,7 @@ db = client['2FA']  # Update with your database name
 collection = db['users']  # Update with your collection name
 
 # Read image file as binary data
-with open('C:\\Users\\mouhi\\Pictures\\Camera Roll\\JUDGE.jpg', 'rb') as file:
+with open('C:\\Users\\mouhi\\GITHUB\\MazicM\\VigilEye\\image.png', 'rb') as file:
     image_data = file.read()
 
 # Encode the binary data as base64
@@ -17,8 +17,8 @@ encoded_image = base64.b64encode(image_data).decode('utf-8')
 new_element = {
     "filename": "JJ.png",
     "data": encoded_image,
-    "name": "JJ",
-    "cardID": "6666"  # Update with the desired card ID
+    "name": "OT",
+    "cardID": "7272"  # Update with the desired card ID
 }
 
 # Insert the new element into the collection

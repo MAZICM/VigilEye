@@ -44,14 +44,15 @@ class ModelTrainer:
                 print(f"Error processing image for {name}: {e}")
 
         # Add an "unknown" label with zeroed encoding
-        unknown_encoding = [0] * 128  # Assuming 128-dimensional encoding
-        known_face_encodings.append(unknown_encoding)
-        known_face_names.append('unknown')
+        #unknown_encoding = [0] * 128  # Assuming 128-dimensional encoding
+        #known_face_encodings.append(unknown_encoding)
+        #known_face_names.append('unknown')
 
         model_data = {
             'known_face_encodings': known_face_encodings,
             'known_face_names': known_face_names
         }
+        
         print(model_data)
         # Generate filename with current date and time
         now = datetime.now()

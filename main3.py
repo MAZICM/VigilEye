@@ -44,28 +44,58 @@ def delayed_publish(client, message, delay):
     print("\n\nScan Card Please : ")
 
 def on_message(client, userdata, message):
-    print("\n\n")
+    global latest_cardID
+    logging.info("Received MQTT message: %s", str(message.payload.decode("utf-8")))
+
     if message.topic == "rfid/cards":
-        CardID = message.payload.decode('utf-8')
-        print("Detected CardID: " + CardID)
+        cardID = message.payload.decode('utf-8')
+        logging.info("Detected CardID: %s", cardID)
+        latest_cardID = cardID
         
-        # Perform facial recognition
-        print("Face Detection Process .... ")
+        # Get the owner's name based on card ID from MongoDB
+        user = collection.find_one({'cardID': cardID})
+        owner_name = user['name'] if user else 'Unknown'
+        logging.info("Owner name: %s", owner_name)
+
+        # Emit both cardID and owner's name
+        socketio.emit("latest_cardID", {"cardID": cardID, "ownerName": owner_name})
+
+        # Ensure synchronous operation with f_rec
         detected_face = f_rec(face_recognition)
-        if detected_face:
-            # Get the expected CardID for the detected face
-            expected_cardID = get_expected_cardID(detected_face)
-            print("expected")
-            print(expected_cardID)
-            if expected_cardID == CardID:
-                print("ACCESS Granted for 5 secs")
-                client.publish("2FA/results", "Access authorised")
-                # Schedule publishing of "Access refused" after 5 seconds
-                threading.Thread(target=delayed_publish, args=(client, "Access refused", 5)).start()
-            else:
-                print("ACCESS Refused")
-                client.publish("2FA/results", "Access refused")
-                print("\n\nScan Card Please : ")
+        if detected_face is None:
+            logging.warning("No face detected")
+            socketio.emit("face_detection_error", {"error": "No face detected. Please try again."})
+            return  # Early exit if no face is detected
+
+        logging.info("Detected face: %s", detected_face)
+
+        expected_cardID = get_expected_cardID(detected_face)
+        if expected_cardID is None:
+            logging.warning("No user found with the detected face: %s", detected_face)
+            socketio.emit("access_refused", {"status": "refused", "message": "Access denied. No matching user found."})
+            return  # Early exit if no expected cardID is found
+
+        logging.info("Expected CardID: %s", expected_cardID)
+
+        # Check if the expected card ID matches the detected card ID
+        if expected_cardID == cardID:
+            logging.info("ACCESS Granted for 5 secs")
+            
+            # Emit success event
+            socketio.emit("access_granted", {"status": "granted"})
+            
+            # Start a thread to handle delayed actions without blocking
+            threading.Thread(
+                target=delayed_publish,
+                args=(client, "Access refused", 5)  # Message is "Access refused" after 5 seconds
+            ).start()
+
+        else:
+            logging.info("ACCESS Refused")
+            socketio.emit("access_refused", {"status": "refused", "message": "Card ID does not match."})
+
+        # Final message for the console log
+        logging.info("End of on_message processing")
 
 # Initialize MQTT client
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
@@ -73,7 +103,7 @@ print("Scan Card Please : ")
 client.on_message = on_message
 
 # Connect to MQTT broker
-client.connect("192.168.11.238", 1883)
+client.connect("192.168.1.103", 1883)
 
 # Subscribe to topics
 client.subscribe("rfid/cards")
