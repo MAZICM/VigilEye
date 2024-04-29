@@ -82,6 +82,8 @@ def on_message(client, userdata, message):
         user = db['users'].find_one({'cardID': cardID})
         owner_name = user['name'] if user else 'Unknown'
         logging.info("Owner name: %s", owner_name)
+        owner_image_data = user.get("data", None)
+        base64_image = owner_image_data if owner_image_data else None 
 
         # Record the scan time and create the base log entry
         scan_time = datetime.now()  # Record the current date and time
@@ -90,7 +92,11 @@ def on_message(client, userdata, message):
             "cardID": cardID,
             "owner_name": owner_name,
         }
-
+        socketio.emit("latest_cardID", {
+                'cardID': cardID,
+                'ownerName': owner_name,
+                'ownerImage': base64_image
+        })
         # Ensure synchronous operation with f_rec
         face_recognition = FaceRecognition(socketio=socketio)
         detected_face = f_rec(face_recognition)
@@ -170,6 +176,7 @@ def get_owner_name():
         user = collection.find_one({'cardID': card_id})
         if user:
             logging.info("Owner Name: %s", user['name'])
+            
             return jsonify({'ownerName': user['name']})
         else:
             return jsonify({'error': 'User not found'}), 404
