@@ -69,6 +69,7 @@ class FaceRecognition:
         #self.video_capture = cv2.VideoCapture("http://192.168.0.107:4747/video")
         #self.video_capture = cv2.VideoCapture(0)
         
+        
         time.sleep(2)
         #video_capture3 = cv2.VideoCapture(0)
         while time.time() - start_time < 10:  # Extend the recognition loop to 10 seconds
@@ -133,8 +134,8 @@ class FaceRecognition:
             time.sleep(2)
             # If no face is detected, return "Unknown" and break the loop
             if not face_detected:
-                base64_image = image_to_base64("not_detected_face.jpg")
-                cv2.imwrite("not_detected_face.jpg", frame)
+                cv2.imwrite("detected_face.jpg", frame)
+                base64_image = image_to_base64("detected_face.jpg")
                 self.socketio.emit("ai_frame", {"frame": base64_image})
                 self.video_capture.release()
                 cv2.destroyAllWindows()
