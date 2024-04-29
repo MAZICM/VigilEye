@@ -14,6 +14,10 @@ from io import BytesIO
 logging.basicConfig(level=logging.DEBUG)
 
 
+def image_to_base64(image_path):
+    with open(image_path, "rb") as img_file:
+        base64_str = base64.b64encode(img_file.read()).decode('utf-8')
+    return base64_str
 
 # MQTT settings
 mqtt_broker_address = "192.168.0.103"  # Update with your MQTT broker address
@@ -38,7 +42,8 @@ def f_rec(face_recognition):
         
         return detected_face
     else:
-        socketio.emit("ai_frame", {"frame": ""})
+        base64_image = image_to_base64("not_detected_face.jpg")
+        socketio.emit("ai_frame", {"frame": base64_image})
         logging.warning("No face detected 1.")
 
 def delayed_publish(client, message, delay):
@@ -82,6 +87,8 @@ def on_message(client, userdata, message):
         detected_face = f_rec(face_recognition)
         
         if detected_face is None:
+            base64_image = image_to_base64("not_detected_face.jpg")
+            socketio.emit("ai_frame", {"frame": base64_image})
             logging.warning("No face detected 2")
             socketio.emit("face_detection_error", {"error": "No face detected. Please try again."})
             return  # Early exit if no face is detected

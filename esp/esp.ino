@@ -2,12 +2,14 @@
 #include <MFRC522.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
 
 #define SS_PIN    21
 #define RST_PIN   22
 
-#define WIFI_SSID     "Tenda_2AAA80"
-#define WIFI_PASSWORD "12345678"
+#define LedB_PIN   25
+#define LedG_PIN   26
+#define LedR_PIN   27
 
 #define MQTT_BROKER "192.168.0.103"
 #define MQTT_PORT   1883
@@ -23,14 +25,66 @@ MFRC522 rfid(SS_PIN, RST_PIN);
 MFRC522::MIFARE_Key key;
 
 void setup() {
-  Serial.begin(115200);
+  WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
+    // it is a good practice to make sure your code sets wifi mode how you want it.
+ 
+    // put your setup code here, to run once:
+    Serial.begin(115200);
+  pinMode(LedB_PIN, OUTPUT);
+  pinMode(LedG_PIN, OUTPUT);
+  pinMode(LedR_PIN, OUTPUT);
+  digitalWrite(LedB_PIN, HIGH);
+  digitalWrite(LedG_PIN, HIGH);
+  digitalWrite(LedR_PIN, HIGH);
   pinMode(5, OUTPUT);
   digitalWrite(5, HIGH);
-  connectWiFi();
-  client.setServer(MQTT_BROKER, MQTT_PORT);
-  client.setCallback(callback); // Set callback function for incoming messages
+  
+
   SPI.begin();
   rfid.PCD_Init();
+
+  digitalWrite(LedB_PIN, LOW);
+  digitalWrite(LedG_PIN, LOW);
+  digitalWrite(LedR_PIN, HIGH);
+  Serial.print("AP Start .....");
+    //WiFiManager, Local intialization. Once its business is done, there is no need to keep it around
+    WiFiManager wm;
+ 
+    // reset settings - wipe stored credentials for testing
+    // these are stored by the esp library
+    wm.resetSettings();
+ 
+    // Automatically connect using saved credentials,
+    // if connection fails, it starts an access point with the specified name ( "AutoConnectAP"),
+    // if empty will auto generate SSID, if password is blank it will be anonymous AP (wm.autoConnect())
+    // then goes into a blocking loop awaiting configuration and will return success result
+ 
+    bool res;
+    // res = wm.autoConnect(); // auto generated AP name from chipid
+    // res = wm.autoConnect("AutoConnectAP"); // anonymous ap
+    res = wm.autoConnect("DoorAPID","VigilEye"); // password protected ap
+    
+    if(!res) {
+        Serial.println("Failed to connect");
+        delay(1000);
+        //ESP.restart();
+    } else
+    {
+        //if you get here you have connected to the WiFi    
+        Serial.println("connected...yeey :)");
+        digitalWrite(LedB_PIN, HIGH);
+        digitalWrite(LedG_PIN, LOW);
+        digitalWrite(LedR_PIN, LOW);
+        client.setServer(MQTT_BROKER, MQTT_PORT);
+        client.setCallback(callback); // Set callback function for incoming messages
+
+    }
+             
+        
+    
+
+ 
+
 }
 
 void loop() {
@@ -43,12 +97,22 @@ void loop() {
   // Only attempt RFID read if no card has been read in the current scan
   if (cardID == "" && rfid.PICC_IsNewCardPresent() && rfid.PICC_ReadCardSerial()) {
     sendCardID(rfid.uid.uidByte, rfid.uid.size);
+    digitalWrite(LedB_PIN, HIGH);
+    delay(500);
+    digitalWrite(LedB_PIN, LOW);
+    delay(500);
+    digitalWrite(LedB_PIN, HIGH);
+    delay(500);
+    digitalWrite(LedB_PIN, LOW);
+    delay(500);
+    digitalWrite(LedB_PIN, HIGH);
+
   }
 }
 
 void connectWiFi() {
   Serial.println("Connecting to WiFi...");
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  //WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
     delay(500);
@@ -106,10 +170,30 @@ void callback(char* topic, byte* payload, unsigned int length) {
   if (payloadString == "Access authorised") {
     digitalWrite(5, LOW);
     Serial.print("open");
+    digitalWrite(LedB_PIN, LOW);
+    digitalWrite(LedG_PIN, HIGH);
+    delay(500);
+    digitalWrite(LedG_PIN, LOW);
+    delay(500);
+    digitalWrite(LedG_PIN, HIGH);
+    delay(500);
+    digitalWrite(LedG_PIN, LOW);
+    delay(500);
+    digitalWrite(LedB_PIN, HIGH);
   }
   if (payloadString == "Access refused") {
     digitalWrite(5, HIGH);
     Serial.print("close");
+    digitalWrite(LedB_PIN, LOW);
+    digitalWrite(LedR_PIN, HIGH);
+    delay(500);
+    digitalWrite(LedR_PIN, LOW);
+    delay(500);
+    digitalWrite(LedR_PIN, HIGH);
+    delay(500);
+    digitalWrite(LedR_PIN, LOW);
+    delay(500);
+    digitalWrite(LedR_PIN, HIGH);
   }
 
   // Reset variables
