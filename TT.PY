@@ -30,7 +30,7 @@ collection = db['users']
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 CORS(app)
-face_recognition = FaceRecognition(socketio=socketio)
+
 
 latest_cardID = "0000"  # Initialize latest_cardID variable
 
@@ -42,7 +42,7 @@ def f_rec(face_recognition):
         
         return detected_face
     else:
-        base64_image = image_to_base64("not_detected_face.jpg")
+        base64_image = image_to_base64("icons8-error-80.jpg")
         socketio.emit("ai_frame", {"frame": base64_image})
         logging.warning("No face detected 1.")
 
@@ -84,10 +84,11 @@ def on_message(client, userdata, message):
         socketio.emit("latest_cardID", {"cardID": cardID, "ownerName": owner_name})
 
         # Ensure synchronous operation with f_rec
+        face_recognition = FaceRecognition(socketio=socketio)
         detected_face = f_rec(face_recognition)
         
         if detected_face is None:
-            base64_image = image_to_base64("not_detected_face.jpg")
+            base64_image = image_to_base64("icons8-error-80.jpg")
             socketio.emit("ai_frame", {"frame": base64_image})
             logging.warning("No face detected 2")
             socketio.emit("face_detection_error", {"error": "No face detected. Please try again."})

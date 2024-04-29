@@ -36,7 +36,7 @@ class FaceRecognition:
 
         #self.video_capture1 = cv2.VideoCapture("http://192.168.0.107:4747/video")
         #self.video_capture = cv2.VideoCapture(0)
-        self.frame_count = 0
+        
 
 
             
@@ -53,7 +53,7 @@ class FaceRecognition:
 
         with open('temp_model.pkl', 'rb') as f:
             model_data = pickle.load(f)
-            print(model_data)
+            print(model_data['known_face_names'])
             self.known_face_encodings = model_data['known_face_encodings']
             self.known_face_names = model_data['known_face_names']
             self.tolerance = model_data.get('tolerance', 0.5)
@@ -66,14 +66,14 @@ class FaceRecognition:
         start_time = time.time() 
         self.frame_count = 0
          # Record the start time
-        self.video_capture = cv2.VideoCapture("http://192.168.0.107:4747/video")
+        #self.video_capture = cv2.VideoCapture("http://192.168.0.107:4747/video")
         #self.video_capture = cv2.VideoCapture(0)
         
         time.sleep(2)
         #video_capture3 = cv2.VideoCapture(0)
         while time.time() - start_time < 10:  # Extend the recognition loop to 10 seconds
-            for _ in range(10):
-                self.video_capture.grab()
+            self.video_capture = cv2.VideoCapture("http://192.168.0.107:4747/video")
+            
             ret, frame = self.video_capture.read()
             if not ret:
                 print("Error reading frame.")
@@ -117,13 +117,13 @@ class FaceRecognition:
                    # Save the image and convert to Base64
                     cv2.imwrite("detected_face.jpg", frame)
                     base64_image = image_to_base64("detected_face.jpg")
-
+                    self.video_capture.release()
                     # Emit the Base64 image to Socket.IO
                     self.socketio.emit("ai_frame", {"frame": base64_image})
                    
                     self.video_capture.release()
                     cv2.destroyAllWindows()
-                    self.frame_count = 0
+                    
                     return name
                 color = (0, 255, 0) if name != 'Unknown' else (0, 0, 255)
                 cv2.rectangle(frame, (left, top), (right, bottom), color, self.frame_thickness)
@@ -141,9 +141,10 @@ class FaceRecognition:
                 return 'Unknown'
             
 
-            self.frame_count += 1
+            
 
         self.video_capture.release()
+        self.video_capture = cv2.VideoCapture("http://192.168.0.107:4747/video")
         cv2.destroyAllWindows()
 
 
