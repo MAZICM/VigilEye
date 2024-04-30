@@ -29,6 +29,8 @@ class ModelTrainer:
             try:
                 # Convert bytes to PIL image object
                 image = Image.open(io.BytesIO(image_bytes))
+                if image.mode not in ["RGB", "L"]:
+                    image = image.convert("RGB")  # Convert to RGB
                 image = np.array(image)
 
                 # Detect face and encode it
@@ -53,7 +55,7 @@ class ModelTrainer:
             'known_face_names': known_face_names
         }
         
-        print(model_data)
+        #print(model_data)
         # Generate filename with current date and time
         now = datetime.now()
         date_time = now.strftime("%Y-%m-%d_%H-%M-%S")
