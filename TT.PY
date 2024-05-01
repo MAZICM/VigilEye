@@ -9,6 +9,7 @@ import time
 import base64
 from flask import Flask, jsonify, request, send_file
 from io import BytesIO
+from model_trainer import ModelTrainer  
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -158,11 +159,12 @@ def on_message(client, userdata, message):
                 log_entry["access_decision"] = "Card ID does not match"
                 logs_collection.insert_one(log_entry)
     elif add_user_mon == 1 : 
+        add_user_mon = 0
         global form_data  # Use the global form_data variable
         cardID = message.payload.decode('utf-8')
-
-        logging.info("Received MQTT message with Card ID: %s", cardID)
-
+        socketio.emit("scanned_card_id", {"cardID": cardID})
+        logging.info("Received MQTT message with Card ID: %s", cardID   )
+        
         if form_data and 'cardID' not in form_data:
             # Update form_data with the received card ID
             form_data['cardID'] = cardID
@@ -171,7 +173,7 @@ def on_message(client, userdata, message):
             users_collection.insert_one(form_data)
 
             logging.info("New user added with Card ID: %s", cardID)
-            add_user_mon == 0
+            
             # Reset form_data after successful insertion
             form_data = None
 
@@ -288,6 +290,17 @@ def get_users():
         users_list.append(user_info)
 
     return jsonify(users_list)  # Return all users as a JSON array
+
+@app.route('/api/train-model', methods=['POST'])
+def train_model():
+    try:
+        trainer = ModelTrainer()  # Initialize your model trainer
+        trainer.train_and_save_model()  # Run the training logic
+
+        return jsonify({'success': True, 'message': 'Model trained successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500  # Handle errors
+    
 
 if __name__ == '__main__':
     socketio.run(app, host="192.168.0.103", port=5000)

@@ -73,8 +73,8 @@ class FaceRecognition:
         time.sleep(2)
         #video_capture3 = cv2.VideoCapture(0)
         while time.time() - start_time < 10:  # Extend the recognition loop to 10 seconds
-            #self.video_capture = cv2.VideoCapture("http://192.168.0.107:4747/video")
-            self.video_capture = cv2.VideoCapture(0)
+            self.video_capture = cv2.VideoCapture("http://192.168.0.108:4747/video")
+            #self.video_capture =  cv2.VideoCapture(0)
             ret, frame = self.video_capture.read()
             if not ret:
                 print("Error reading frame.")
@@ -145,7 +145,7 @@ class FaceRecognition:
             
 
         self.video_capture.release()
-        self.video_capture = cv2.VideoCapture("http://192.168.0.107:4747/video")
+        #self.video_capture = cv2.VideoCapture("http://192.168.0.107:4747/video")
         cv2.destroyAllWindows()
 
 
