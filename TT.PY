@@ -300,7 +300,31 @@ def train_model():
         return jsonify({'success': True, 'message': 'Model trained successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500  # Handle errors
-    
+
+
+
+# Define an endpoint to get model history
+@app.route('/api/model-history', methods=['GET'])
+def get_model_history():
+    try:
+        # Get the collection
+        collection = db["AI-Models"]
+
+        # Fetch all documents in reverse order (newest first)
+        model_docs = collection.find({}).sort({"datetime": -1})
+
+        # Convert to a list of dictionaries
+        model_history = [
+            {"id": str(doc["_id"]), "datetime": doc["datetime"]}
+            for doc in model_docs
+        ]
+
+        # Return the result as JSON
+        return jsonify(model_history), 200
+
+    except Exception as e:
+        # Handle errors
+        return jsonify({"error": str(e)}), 500    
 
 if __name__ == '__main__':
     socketio.run(app, host="192.168.0.103", port=5000)
