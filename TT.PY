@@ -254,11 +254,8 @@ def add_user():
     if not user_name or not image_data :
         return jsonify({'error': 'Missing required fields'}), 400  # Check for required fields
 
-
     #image_base64 = base64.b64encode(image_binary).decode('utf-8')  # Encode into Base64 and decode for storage
     
-
-
     add_user_mon = 1
     # Store the form data globally (waiting for card ID from MQTT)
     form_data = {
@@ -327,4 +324,5 @@ def get_model_history():
         return jsonify({"error": str(e)}), 500    
 
 if __name__ == '__main__':
+
     socketio.run(app, host="192.168.0.103", port=5000)
